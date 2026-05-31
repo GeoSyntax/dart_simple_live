@@ -470,7 +470,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   int mediaErrorRetryCount = 0;
   @override
   void mediaError(String error) async {
-    super.mediaEnd();
+    super.mediaError(error);
     if (mediaErrorRetryCount < 2) {
       Log.d("播放失败，尝试第${mediaErrorRetryCount + 1}次刷新");
       if (mediaErrorRetryCount == 1) {
@@ -490,6 +490,18 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
       //currentLineIndex += 1;
       //setPlayer();
       changePlayLine(currentLineIndex + 1);
+    }
+  }
+
+  /// buffering 卡死自动恢复：重新获取播放地址并重试
+  @override
+  void onBufferingStuck() {
+    Log.d("Buffering stuck, attempting to refresh play URL and recover");
+    mediaErrorRetryCount = 0;
+    if (detail.value != null && qualites.isNotEmpty && currentQuality >= 0) {
+      getPlayUrl();
+    } else {
+      setPlayer();
     }
   }
 

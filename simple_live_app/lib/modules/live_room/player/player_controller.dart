@@ -674,6 +674,13 @@ class PlayerController extends BaseController
   StreamSubscription? _heightSubscription;
   StreamSubscription? _logSubscription;
   StreamSubscription? _playingSubscription;
+  StreamSubscription? _bufferingSubscription;
+
+  /// buffering 卡死检测定时器
+  Timer? _bufferingStuckTimer;
+
+  /// buffering 超时时间（秒）
+  static const int _bufferingTimeoutSeconds = 20;
 
   void initStream() {
     _errorSubscription = player.stream.error.listen((event) {
@@ -714,6 +721,36 @@ class PlayerController extends BaseController
       isVertical.value =
           (player.state.height ?? 9) > (player.state.width ?? 16);
     });
+
+    // 监听 buffering 状态，检测卡死
+    _bufferingSubscription = player.stream.buffering.listen((isBuffering) {
+      if (isBuffering) {
+        _startBufferingStuckTimer();
+      } else {
+        _cancelBufferingStuckTimer();
+      }
+    });
+  }
+
+  void _startBufferingStuckTimer() {
+    _bufferingStuckTimer?.cancel();
+    _bufferingStuckTimer = Timer(
+      const Duration(seconds: _bufferingTimeoutSeconds),
+      () {
+        Log.d("Buffering stuck detected: exceeded $_bufferingTimeoutSeconds seconds, triggering recovery");
+        onBufferingStuck();
+      },
+    );
+  }
+
+  void _cancelBufferingStuckTimer() {
+    _bufferingStuckTimer?.cancel();
+    _bufferingStuckTimer = null;
+  }
+
+  /// buffering 卡死时的恢复逻辑，子类可覆盖
+  void onBufferingStuck() {
+    // 基类默认空实现，子类覆盖具体恢复策略
   }
 
   void disposeStream() {
@@ -724,6 +761,8 @@ class PlayerController extends BaseController
     _logSubscription?.cancel();
     _pipSubscription?.cancel();
     _playingSubscription?.cancel();
+    _bufferingSubscription?.cancel();
+    _cancelBufferingStuckTimer();
   }
 
   void mediaEnd() {
