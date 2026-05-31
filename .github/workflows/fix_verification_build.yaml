@@ -1,0 +1,128 @@
+name: fix-verification-build
+on:
+  push:
+    branches:
+      - "fix/**"
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.x"
+          cache: true
+
+      - name: Create dummy key.properties for build
+        run: |
+          echo "storeFile=/tmp/dummy.jks" > simple_live_app/android/key.properties
+          echo "storePassword=dummy" >> simple_live_app/android/key.properties
+          echo "keyPassword=dummy" >> simple_live_app/android/key.properties
+          echo "keyAlias=dummy" >> simple_live_app/android/key.properties
+
+      - name: Restore packages
+        run: |
+          cd simple_live_app
+          flutter pub get
+
+      - name: Analyze
+        run: |
+          cd simple_live_app
+          dart analyze
+
+      - name: Build APK (debug)
+        run: |
+          cd simple_live_app
+          flutter build apk --debug --android-skip-build-dependency-validation
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fix-debug-apk
+          path: |
+            simple_live_app/build/app/outputs/flutter-apk/app-debug.apk
+
+  build-windows-fix:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.x"
+          cache: true
+
+      - name: Enable Flutter Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Restore packages
+        run: |
+          cd simple_live_app
+          flutter pub get
+
+      - name: Analyze
+        run: |
+          cd simple_live_app
+          dart analyze
+
+      - name: Build Windows (debug)
+        run: |
+          cd simple_live_app
+          flutter build windows --debug
+
+      - name: Upload Windows fix
+        uses: actions/upload-artifact@v4
+        with:
+          name: fix-debug-windows
+          path: |
+            simple_live_app/build/windows/x64/runner/Debug/
+
+  build-windows-original:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ba828e6
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.x"
+          cache: true
+
+      - name: Enable Flutter Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Restore packages
+        run: |
+          cd simple_live_app
+          flutter pub get
+
+      - name: Build Windows (debug)
+        run: |
+          cd simple_live_app
+          flutter build windows --debug
+
+      - name: Upload Windows original
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-debug-windows
+          path: |
+            simple_live_app/build/windows/x64/runner/Debug/

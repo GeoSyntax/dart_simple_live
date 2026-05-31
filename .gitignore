@@ -2,4 +2,4 @@ simple_live_app/.vscode/settings.json
 simple_live_tv_app/.vscode/settings.json
 
 # macOS Spotlight Search index file
-*.DS_Store
+*.DS_Storebuild_output/

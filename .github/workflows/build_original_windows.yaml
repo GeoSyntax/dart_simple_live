@@ -1,0 +1,39 @@
+name: build-original-windows
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-original:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ba828e6
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.x"
+          cache: true
+
+      - name: Enable Flutter Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Restore packages
+        run: |
+          cd simple_live_app
+          flutter pub get
+
+      - name: Build Windows (debug)
+        run: |
+          cd simple_live_app
+          flutter build windows --debug
+
+      - name: Upload Windows original
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-debug-windows
+          path: |
+            simple_live_app/build/windows/x64/runner/Debug/
