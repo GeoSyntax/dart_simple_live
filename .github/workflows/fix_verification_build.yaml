@@ -25,12 +25,13 @@ jobs:
           flutter-version: "3.38.x"
           cache: true
 
-      - name: Create dummy key.properties for build
+      - name: Generate keystore for signing
         run: |
-          echo "storeFile=/tmp/dummy.jks" > simple_live_app/android/key.properties
-          echo "storePassword=dummy" >> simple_live_app/android/key.properties
-          echo "keyPassword=dummy" >> simple_live_app/android/key.properties
-          echo "keyAlias=dummy" >> simple_live_app/android/key.properties
+          keytool -genkey -v -keystore /tmp/release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias simplelive -storepass simplelive123 -keypass simplelive123 -dname "CN=SimpleLive, OU=Dev, O=SimpleLive, L=Beijing, ST=Beijing, C=CN"
+          echo "storeFile=/tmp/release.jks" > simple_live_app/android/key.properties
+          echo "storePassword=simplelive123" >> simple_live_app/android/key.properties
+          echo "keyPassword=simplelive123" >> simple_live_app/android/key.properties
+          echo "keyAlias=simplelive" >> simple_live_app/android/key.properties
 
       - name: Restore packages
         run: |
@@ -42,17 +43,17 @@ jobs:
           cd simple_live_app
           dart analyze
 
-      - name: Build APK (debug)
+      - name: Build APK (release)
         run: |
           cd simple_live_app
-          flutter build apk --debug --android-skip-build-dependency-validation
+          flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: fix-debug-apk
+          name: fix-release-apk
           path: |
-            simple_live_app/build/app/outputs/flutter-apk/app-debug.apk
+            simple_live_app/build/app/outputs/flutter-apk/app-release.apk
 
   build-windows-fix:
     runs-on: windows-latest
@@ -80,17 +81,17 @@ jobs:
           cd simple_live_app
           dart analyze
 
-      - name: Build Windows (debug)
+      - name: Build Windows (release)
         run: |
           cd simple_live_app
-          flutter build windows --debug
+          flutter build windows --release
 
       - name: Upload Windows fix
         uses: actions/upload-artifact@v4
         with:
-          name: fix-debug-windows
+          name: fix-release-windows
           path: |
-            simple_live_app/build/windows/x64/runner/Debug/
+            simple_live_app/build/windows/x64/runner/Release/
 
   build-windows-original:
     runs-on: windows-latest
@@ -115,14 +116,14 @@ jobs:
           cd simple_live_app
           flutter pub get
 
-      - name: Build Windows (debug)
+      - name: Build Windows (release)
         run: |
           cd simple_live_app
-          flutter build windows --debug
+          flutter build windows --release
 
       - name: Upload Windows original
         uses: actions/upload-artifact@v4
         with:
-          name: original-debug-windows
+          name: original-release-windows
           path: |
-            simple_live_app/build/windows/x64/runner/Debug/
+            simple_live_app/build/windows/x64/runner/Release/
